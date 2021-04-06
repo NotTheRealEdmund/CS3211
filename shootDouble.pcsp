@@ -1,0 +1,554 @@
+﻿#import "PAT.Lib.NewLib";	// Contains Player class with setRow, getRow, setCol, getCol, setBall, getBall, setTeam, getTeam functions
+							// Player objects have integers row, col, ball_ownership, and team (0 = A, 1 = B)
+
+#define numOfPlayers 22;	// Total 22 players, 11 per team
+
+// Player's initial positions
+var<Player> A1 = new Player(1, 8, 0, 0);	// A's Goalkeeper
+var<Player> A2 = new Player(10, 8, 0, 0);	// A's Center Attacker
+var<Player> A3 = new Player(10, 4, 0, 0);	// A's Left Attacker
+var<Player> A4 = new Player(10, 12, 0, 0);	// A's Right Attacker
+var<Player> A5 = new Player(7, 8, 0, 0);	// A's Center Midfielder
+var<Player> A6 = new Player(7, 4, 0, 0);	// A's Left Midfielder
+var<Player> A7 = new Player(7, 12, 0, 0);	// A's Right Midfielder
+var<Player> A8 = new Player(4, 2, 0, 0);	// A's LeftMost Defender
+var<Player> A9 = new Player(4, 6, 0, 0);	// A's LeftCenter Defender
+var<Player> A10 = new Player(4, 10, 0, 0);	// A's RightCenter Defender
+var<Player> A11 = new Player(4, 14, 0, 0);	// A's RightMost Defender
+var<Player> B1 = new Player(22, 8, 0, 1);	// B's Goalkeeper
+var<Player> B2 = new Player(13, 8, 0, 1);	// B's Center Attacker
+var<Player> B3 = new Player(13, 4, 0, 1);	// B's Left Attacker
+var<Player> B4 = new Player(13, 12, 0, 1);	// B's Right Attacker
+var<Player> B5 = new Player(16, 8, 0, 1);	// B's Center Midfielder
+var<Player> B6 = new Player(16, 4, 0, 1);	// B's Left Midfielder
+var<Player> B7 = new Player(16, 12, 0, 1);	// B's Right Midfielder
+var<Player> B8 = new Player(19, 2, 0, 1);	// B's LeftMost Defender
+var<Player> B9 = new Player(19, 6, 0, 1);	// B's LeftCenter Defender
+var<Player> B10 = new Player(19, 10, 0, 1);	// B's RightCenter Defender
+var<Player> B11 = new Player(19, 14, 0, 1);	// B's RightMost Defender
+
+var players = [A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11];
+
+// Model a soccer field of size 120m x 85m into zones of 5m x 5m, there will be 24 zones by 17 zones
+var zone[24][17] = [0,	 1,   2,   3,	4,	 5,	  6,   7,	8,	 9,	  10,  11,	12,	 13,  14,  15,	16,		// Team A side, goal at zone[0][8]
+					17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,  32,  33,		// A goalkeeper at zone[1][8], limited to 0 <= row <= 2 and 7 <= col <= 9
+					34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,  48,  49,  50,
+					51,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  62,  63,  64,  65,  66,  67,
+					68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  81,  82,  83,  84,		// A defenders at zone[4][2], zone[4][6], zone[4][10], zone[4][14], limited to row <= 6
+					85,  86,  87,  88,  89,  90,  91,  92,  93,  94,  95,  96,  97,  98,  99,  100, 101,
+					102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118,
+					119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135,	// A midfielders at zone[7][4], zone[7][8], zone[7][12], limited to 5 <= row <= 9
+					136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152,
+					153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169,
+					170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186,	// A attackers at zone[10][4], zone[10][8], zone[10][12], limited to 7 <= row
+					187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203,	
+					204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220,	
+					221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237,	// B attackers at zone[13][4], zone[13][8], zone[13][12], limited to row <= 16
+					238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+					255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271,
+					272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288,	// B midfielders at zone[16][4], zone[16][8], zone[16][12], limited to 14 <= row <= 18
+					289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305,
+					306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322,
+					323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339,	// B defenders at zone[19][2], zone[19][6], zone[19][10], zone[19][14], limited to 17 <= row
+					340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356,
+					357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373,
+					374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390,	// B goalkeeper at zone[22][8], limited to 21 <= row <= 23 and 7 <= col <= 9
+					391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407];	// Team B side, goal at zone[23][8]
+
+var ball_position;	// Create ball
+
+// Only used in passEvent and shootEvent because probability of fail/success is not fixed
+var rowDiff;
+var colDiff;
+var failProb;
+var successProb;
+
+// This variable is required to hold the array position of the player who is going to get the ball passed to
+var l;
+
+// This varibale is required to check if a player to pass to has been chosen
+var flag;
+
+// This variable is required to prevent errors in passEvent
+var<Player> tempPlayer;
+
+					// If goalkeeper does not have the ball, goalkeeper can stay (do nothing) or run (move adjacent left/right/up/down) 
+					// ONLY 0 <= row <= 2 and 7 <= col <= 9 for A1 and 21 <= row <= 23 and 7 <= col <= 9 for B1 to prevent being too far away from goal
+					// If goalkeeper has the ball, goalkeeper will pass to one of the attackers
+Goalkeeper(player) = if (player.getBall() == 0) {
+						if (player.getTeam() == 0) {
+							pcase{
+								1: stayEvent -> Skip
+								1: runEvent -> pcase{
+									1: moveUp { if (player.getRow() - 1 >= 0) { player.setRow(player.getRow() - 1); } } -> Skip
+									1: moveDown { if (player.getRow() + 1 <= 2) { player.setRow(player.getRow() + 1); } } -> Skip
+									1: moveLeft { if (player.getCol() - 1 >= 7) { player.setCol(player.getCol() - 1); } } -> Skip
+									1: moveRight { if (player.getCol() + 1 <= 9) { player.setCol(player.getCol() + 1); } } -> Skip
+								}
+							}
+						} else {
+							pcase{
+								1: stayEvent -> Skip
+								1: runEvent -> pcase{
+									1: moveUp { if (player.getRow() - 1 >= 21) { player.setRow(player.getRow() - 1); } } -> Skip
+									1: moveDown { if (player.getRow() + 1 <= 23) { player.setRow(player.getRow() + 1); } } -> Skip
+									1: moveLeft { if (player.getCol() - 1 >= 7) { player.setCol(player.getCol() - 1); } } -> Skip
+									1: moveRight { if (player.getCol() + 1 <= 9) { player.setCol(player.getCol() + 1); } } -> Skip
+								}
+							}
+						}
+					}
+					[]
+					if (player.getBall() == 1) {	// If goalkeeper has the ball, goalkeeper will pass to one of the attackers
+						if (player.getTeam() == 0) {
+							pcase{
+								1: passToA2 { ball_position = zone[A2.getRow()][A2.getCol()]; player.setBall(0); A2.setBall(1); } -> Skip
+								1: passToA3 { ball_position = zone[A3.getRow()][A3.getCol()]; player.setBall(0); A3.setBall(1); } -> Skip
+								1: passToA4 { ball_position = zone[A4.getRow()][A4.getCol()]; player.setBall(0); A4.setBall(1); } -> Skip
+							}
+						} else {
+							pcase{
+								1: passToB2 { ball_position = zone[B2.getRow()][B2.getCol()]; player.setBall(0); B2.setBall(1); } -> Skip
+								1: passToB3 { ball_position = zone[B3.getRow()][B3.getCol()]; player.setBall(0); B3.setBall(1); } -> Skip
+								1: passToB4 { ball_position = zone[B4.getRow()][B4.getCol()]; player.setBall(0); B4.setBall(1); } -> Skip
+							}
+						}
+					};
+					
+				   // Difference is that row <= 6 for A defenders and 17 <= row for B defenders to prevent being too far away from goal
+				   // If defender has the ball, not allowed to shoot, only stay, dribble, and pass
+Defender(player) = if (player.getBall() == 0) {
+						pcase{
+							1: stayEvent -> Skip
+							1: runEvent -> if (player.getTeam() == 0) { 
+								pcase{
+									1: moveUp { if (player.getRow() - 1 >= 0) { player.setRow(player.getRow() - 1); } } -> Skip
+									1: moveDown { if (player.getRow() + 1 <= 6) { player.setRow(player.getRow() + 1); } } -> Skip
+									1: moveLeft { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); } } -> Skip
+									1: moveRight { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); } } -> Skip
+								}
+							} else {
+								pcase{
+									1: moveUp { if (player.getRow() - 1 >= 17) { player.setRow(player.getRow() - 1); } } -> Skip
+									1: moveDown { if (player.getRow() + 1 <= 23) { player.setRow(player.getRow() + 1); } } -> Skip
+									1: moveLeft { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); } } -> Skip
+									1: moveRight { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); } } -> Skip
+								}
+							}
+						}
+					}
+					[]
+					if (player.getBall() == 1) {	// If defender has the ball, not allowed to shoot, only stay, dribble, and pass
+						pcase{
+					    	1: stayEvent -> Skip
+					    	1: dribbleEvent -> pcase{
+					    		[0.2]: dribbleFail -> Skip
+								[0.8]: dribbleSuccess -> if (player.getTeam() == 0) { 
+									pcase{
+										1: moveUpWithBall { if (player.getRow() - 1 >= 0) { player.setRow(player.getRow() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveDownWithBall { if (player.getRow() + 1 <= 6) { player.setRow(player.getRow() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveLeftWithBall { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveRightWithBall { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+									}	
+								} else {
+									pcase{
+										1: moveUpWithBall { if (player.getRow() - 1 >= 17) { player.setRow(player.getRow() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveDownWithBall { if (player.getRow() + 1 <= 23) { player.setRow(player.getRow() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveLeftWithBall { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveRightWithBall { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+									}	
+								}
+							}
+							// Player will pass his ball to another player from the same team, that other player cannot be himself, that other player will more likely be chosen if closer to raise prob of pass success
+							1: passEvent{
+								var k;
+								while (k < numOfPlayers-1) {	// Try to pass to another player within 5 zones apart
+									if (players[k].getTeam() == player.getTeam() && players[k] != player) {
+										rowDiff = players[k].getRow() - player.getRow(); if (rowDiff < 0) { rowDiff = -rowDiff; }
+										colDiff = players[k].getCol() - player.getCol(); if (colDiff < 0) { colDiff = -colDiff; }
+										if ((rowDiff + colDiff) <= 5) {		// Max 10% prob of failure
+											failProb = (rowDiff + colDiff) / 50;
+											successProb = 1 - failProb;
+											l = k;
+											flag = 1;
+											k = numOfPlayers-1;	// To break the while loop after one pass
+										} 
+									}
+									k++;
+								};
+								if (flag == 0) {	// If haven't decided player to pass ball to, try to pass to another player within 10 zones apart
+									k = 0;
+									while (k < numOfPlayers-1) {
+										if (players[k].getTeam() == player.getTeam() && players[k] != player) {
+											rowDiff = players[k].getRow() - player.getRow(); if (rowDiff < 0) { rowDiff = -rowDiff; }
+											colDiff = players[k].getCol() - player.getCol(); if (colDiff < 0) { colDiff = -colDiff; }
+											if ((rowDiff + colDiff) <= 10) {		// Max 20% prob of failure
+												failProb = (rowDiff + colDiff) / 50;
+												successProb = 1 - failProb;
+												l = k;
+												flag = 1;
+												k = numOfPlayers-1;	// To break the while loop after one pass
+											}
+										}
+										k++;
+									};
+								} 
+								if (flag == 0) {	// If still haven't decided player to pass ball to, give up trying to pass to another player because the prob of failure will be greater than 20%, i.e. no player is within 10 zones apart
+									failProb = 1;
+									successProb = 0;
+								}
+								flag = 0;	// Reset flag
+							} -> pcase{
+								failProb: passFail -> Skip
+								successProb: passSuccess{
+								tempPlayer = players[l];
+									ball_position = zone[tempPlayer.getRow()][tempPlayer.getCol()]; player.setBall(0); tempPlayer.setBall(1);
+								} -> Skip
+							}
+						}
+					};
+					
+				   // Difference is that 5 <= row <= 9 for A midfielders and 14 <= row <= 18 for B midfielders to stay between defenders and attackers
+				   // If midfielder has the ball, not allowed to shoot, only stay, dribble, and pass
+Midfielder(player) = if (player.getBall() == 0) {
+						pcase{
+							1: stayEvent -> Skip
+							1: runEvent -> if (player.getTeam() == 0) { 
+								pcase{
+									1: moveUp { if (player.getRow() - 1 >= 5) { player.setRow(player.getRow() - 1); } } -> Skip
+									1: moveDown { if (player.getRow() + 1 <= 9) { player.setRow(player.getRow() + 1); } } -> Skip
+									1: moveLeft { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); } } -> Skip
+									1: moveRight { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); } } -> Skip
+								}
+							} else {
+								pcase{
+									1: moveUp { if (player.getRow() - 1 >= 14) { player.setRow(player.getRow() - 1); } } -> Skip
+									1: moveDown { if (player.getRow() + 1 <= 18) { player.setRow(player.getRow() + 1); } } -> Skip
+									1: moveLeft { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); } } -> Skip
+									1: moveRight { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); } } -> Skip
+								}
+							}
+						}
+					}
+					[]
+					if (player.getBall() == 1) {	// If midfielder has the ball, not allowed to shoot, only stay, dribble, and pass
+						pcase{
+					    	1: stayEvent -> Skip
+					    	1: dribbleEvent -> pcase{
+					    		[0.2]: dribbleFail -> Skip
+								[0.8]: dribbleSuccess -> if (player.getTeam() == 0) { 
+									pcase{
+										1: moveUpWithBall { if (player.getRow() - 1 >= 5) { player.setRow(player.getRow() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveDownWithBall { if (player.getRow() + 1 <= 9) { player.setRow(player.getRow() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveLeftWithBall { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveRightWithBall { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+									}	
+								} else {
+									pcase{
+										1: moveUpWithBall { if (player.getRow() - 1 >= 14) { player.setRow(player.getRow() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveDownWithBall { if (player.getRow() + 1 <= 18) { player.setRow(player.getRow() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveLeftWithBall { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveRightWithBall { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+									}	
+								}
+							}
+							// Player will pass his ball to another player from the same team, that other player cannot be himself, that other player will more likely be chosen if closer to raise prob of pass success
+							1: passEvent{
+								var k;
+								while (k < numOfPlayers-1) {	// Try to pass to another player within 5 zones apart
+									if (players[k].getTeam() == player.getTeam() && players[k] != player) {
+										rowDiff = players[k].getRow() - player.getRow(); if (rowDiff < 0) { rowDiff = -rowDiff; }
+										colDiff = players[k].getCol() - player.getCol(); if (colDiff < 0) { colDiff = -colDiff; }
+										if ((rowDiff + colDiff) <= 5) {		// Max 10% prob of failure
+											failProb = (rowDiff + colDiff) / 50;
+											successProb = 1 - failProb;
+											l = k;
+											flag = 1;
+											k = numOfPlayers-1;	// To break the while loop after one pass
+										} 
+									}
+									k++;
+								};
+								if (flag == 0) {	// If haven't decided player to pass ball to, try to pass to another player within 10 zones apart
+									k = 0;
+									while (k < numOfPlayers-1) {
+										if (players[k].getTeam() == player.getTeam() && players[k] != player) {
+											rowDiff = players[k].getRow() - player.getRow(); if (rowDiff < 0) { rowDiff = -rowDiff; }
+											colDiff = players[k].getCol() - player.getCol(); if (colDiff < 0) { colDiff = -colDiff; }
+											if ((rowDiff + colDiff) <= 10) {		// Max 20% prob of failure
+												failProb = (rowDiff + colDiff) / 50;
+												successProb = 1 - failProb;
+												l = k;
+												flag = 1;
+												k = numOfPlayers-1;	// To break the while loop after one pass
+											}
+										}
+										k++;
+									};
+								} 
+								if (flag == 0) {	// If still haven't decided player to pass ball to, give up trying to pass to another player because the prob of failure will be greater than 20%, i.e. no player is within 10 zones apart
+									failProb = 1;
+									successProb = 0;
+								}
+								flag = 0;	// Reset flag
+							} -> pcase{
+								failProb: passFail -> Skip
+								successProb: passSuccess{
+								tempPlayer = players[l];
+									ball_position = zone[tempPlayer.getRow()][tempPlayer.getCol()]; player.setBall(0); tempPlayer.setBall(1);
+								} -> Skip
+							}
+						}
+					};
+					
+				   // 7 <= row for A attackers and row <= 16 for B attackers to go on the offensive
+				   // If the attacker has the ball, it will never stay and do nothing, and will always dribble, pass, or shoot 
+Attacker(player) = if (player.getBall() == 0) {
+						pcase{
+							1: stayEvent -> Skip
+							1: runEvent -> if (player.getTeam() == 0) { 
+								pcase{
+									1: moveUp { if (player.getRow() - 1 >= 7) { player.setRow(player.getRow() - 1); } } -> Skip
+									1: moveDown { if (player.getRow() + 1 <= 23) { player.setRow(player.getRow() + 1); } } -> Skip
+									1: moveLeft { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); } } -> Skip
+									1: moveRight { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); } } -> Skip
+								}
+							} else {
+								pcase{
+									1: moveUp { if (player.getRow() - 1 >= 0) { player.setRow(player.getRow() - 1); } } -> Skip
+									1: moveDown { if (player.getRow() + 1 <= 16) { player.setRow(player.getRow() + 1); } } -> Skip
+									1: moveLeft { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); } } -> Skip
+									1: moveRight { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); } } -> Skip
+								}
+							}
+						}
+					}
+					[]
+					if (player.getBall() == 1) {	// If the attacker has the ball, it will never stay and do nothing, and will always dribble, pass, or shoot
+						pcase{
+					    	1: dribbleEvent -> pcase{
+					    		[0.2]: dribbleFail -> Skip
+								[0.8]: dribbleSuccess -> if (player.getTeam() == 0) { 
+									pcase{
+										1: moveUpWithBall { if (player.getRow() - 1 >= 7) { player.setRow(player.getRow() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveDownWithBall { if (player.getRow() + 1 <= 23) { player.setRow(player.getRow() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveLeftWithBall { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveRightWithBall { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+									}	
+								} else {
+									pcase{
+										1: moveUpWithBall { if (player.getRow() - 1 >= 0) { player.setRow(player.getRow() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveDownWithBall { if (player.getRow() + 1 <= 16) { player.setRow(player.getRow() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveLeftWithBall { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveRightWithBall { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+									}	
+								}
+							}
+							// Player will pass his ball to another player from the same team, that other player cannot be himself, that other player will more likely be chosen if closer to raise prob of pass success
+							1: passEvent{
+								var k;
+								while (k < numOfPlayers-1) {	// Try to pass to another player within 5 zones apart
+									if (players[k].getTeam() == player.getTeam() && players[k] != player) {
+										rowDiff = players[k].getRow() - player.getRow(); if (rowDiff < 0) { rowDiff = -rowDiff; }
+										colDiff = players[k].getCol() - player.getCol(); if (colDiff < 0) { colDiff = -colDiff; }
+										if ((rowDiff + colDiff) <= 5) {		// Max 10% prob of failure
+											failProb = (rowDiff + colDiff) / 50;
+											successProb = 1 - failProb;
+											l = k;
+											flag = 1;
+											k = numOfPlayers-1;	// To break the while loop after one pass
+										} 
+									}
+									k++;
+								};
+								if (flag == 0) {	// If haven't decided player to pass ball to, try to pass to another player within 10 zones apart
+									k = 0;
+									while (k < numOfPlayers-1) {
+										if (players[k].getTeam() == player.getTeam() && players[k] != player) {
+											rowDiff = players[k].getRow() - player.getRow(); if (rowDiff < 0) { rowDiff = -rowDiff; }
+											colDiff = players[k].getCol() - player.getCol(); if (colDiff < 0) { colDiff = -colDiff; }
+											if ((rowDiff + colDiff) <= 10) {		// Max 20% prob of failure
+												failProb = (rowDiff + colDiff) / 50;
+												successProb = 1 - failProb;
+												l = k;
+												flag = 1;
+												k = numOfPlayers-1;	// To break the while loop after one pass
+											}
+										}
+										k++;
+									};
+								} 
+								if (flag == 0) {	// If still haven't decided player to pass ball to, give up trying to pass to another player because the prob of failure will be greater than 20%, i.e. no player is within 10 zones apart
+									failProb = 1;
+									successProb = 0;
+								}
+								flag = 0;	// Reset flag
+							} -> pcase{
+								failProb: passFail -> Skip
+								successProb: passSuccess{
+								tempPlayer = players[l];
+									ball_position = zone[tempPlayer.getRow()][tempPlayer.getCol()]; player.setBall(0); tempPlayer.setBall(1);
+								} -> Skip
+							}
+							1: shootEvent{
+								if (player.getTeam() == 0) {
+									rowDiff = 23 - player.getRow();
+									colDiff = player.getCol() - 8; if (colDiff < 0) { colDiff = -colDiff; }
+								} else {
+									rowDiff = player.getRow() - 0;
+									colDiff = player.getCol() - 8; if (colDiff < 0) { colDiff = -colDiff; }
+								}
+								failProb = (rowDiff + colDiff) / 50;
+								successProb = 1 - failProb;
+							} -> pcase{
+								failProb: shootFail -> Skip
+								successProb: shootSuccess{
+									if (player.getTeam() == 0) { ball_position = 399; player.setBall(0); } else { ball_position = 8; player.setBall(0); }
+								} -> Skip
+							}
+						}
+					};
+					
+				   	// Difference is the doubled chance for shootEvent
+AttackerNew(player) = if (player.getBall() == 0) {
+						pcase{
+							1: stayEvent -> Skip
+							1: runEvent -> if (player.getTeam() == 0) { 
+								pcase{
+									1: moveUp { if (player.getRow() - 1 >= 7) { player.setRow(player.getRow() - 1); } } -> Skip
+									1: moveDown { if (player.getRow() + 1 <= 23) { player.setRow(player.getRow() + 1); } } -> Skip
+									1: moveLeft { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); } } -> Skip
+									1: moveRight { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); } } -> Skip
+								}
+							} else {
+								pcase{
+									1: moveUp { if (player.getRow() - 1 >= 0) { player.setRow(player.getRow() - 1); } } -> Skip
+									1: moveDown { if (player.getRow() + 1 <= 16) { player.setRow(player.getRow() + 1); } } -> Skip
+									1: moveLeft { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); } } -> Skip
+									1: moveRight { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); } } -> Skip
+								}
+							}
+						}
+					}
+					[]
+					if (player.getBall() == 1) {	// If the attacker has the ball, it will never stay and do nothing, and will always dribble, pass, or shoot
+						pcase{
+					    	1: dribbleEvent -> pcase{
+					    		[0.2]: dribbleFail -> Skip
+								[0.8]: dribbleSuccess -> if (player.getTeam() == 0) { 
+									pcase{
+										1: moveUpWithBall { if (player.getRow() - 1 >= 7) { player.setRow(player.getRow() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveDownWithBall { if (player.getRow() + 1 <= 23) { player.setRow(player.getRow() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveLeftWithBall { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveRightWithBall { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+									}	
+								} else {
+									pcase{
+										1: moveUpWithBall { if (player.getRow() - 1 >= 0) { player.setRow(player.getRow() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveDownWithBall { if (player.getRow() + 1 <= 16) { player.setRow(player.getRow() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveLeftWithBall { if (player.getCol() - 1 >= 0) { player.setCol(player.getCol() - 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+										1: moveRightWithBall { if (player.getCol() + 1 <= 16) { player.setCol(player.getCol() + 1); var x = player.getRow(); var y = player.getCol(); ball_position = zone[x][y]; } } -> Skip
+									}	
+								}
+							}
+							// Player will pass his ball to another player from the same team, that other player cannot be himself, that other player will more likely be chosen if closer to raise prob of pass success
+							1: passEvent{
+								var k;
+								while (k < numOfPlayers-1) {	// Try to pass to another player within 5 zones apart
+									if (players[k].getTeam() == player.getTeam() && players[k] != player) {
+										rowDiff = players[k].getRow() - player.getRow(); if (rowDiff < 0) { rowDiff = -rowDiff; }
+										colDiff = players[k].getCol() - player.getCol(); if (colDiff < 0) { colDiff = -colDiff; }
+										if ((rowDiff + colDiff) <= 5) {		// Max 10% prob of failure
+											failProb = (rowDiff + colDiff) / 50;
+											successProb = 1 - failProb;
+											l = k;
+											flag = 1;
+											k = numOfPlayers-1;	// To break the while loop after one pass
+										} 
+									}
+									k++;
+								};
+								if (flag == 0) {	// If haven't decided player to pass ball to, try to pass to another player within 10 zones apart
+									k = 0;
+									while (k < numOfPlayers-1) {
+										if (players[k].getTeam() == player.getTeam() && players[k] != player) {
+											rowDiff = players[k].getRow() - player.getRow(); if (rowDiff < 0) { rowDiff = -rowDiff; }
+											colDiff = players[k].getCol() - player.getCol(); if (colDiff < 0) { colDiff = -colDiff; }
+											if ((rowDiff + colDiff) <= 10) {		// Max 20% prob of failure
+												failProb = (rowDiff + colDiff) / 50;
+												successProb = 1 - failProb;
+												l = k;
+												flag = 1;
+												k = numOfPlayers-1;	// To break the while loop after one pass
+											}
+										}
+										k++;
+									};
+								} 
+								if (flag == 0) {	// If still haven't decided player to pass ball to, give up trying to pass to another player because the prob of failure will be greater than 20%, i.e. no player is within 10 zones apart
+									failProb = 1;
+									successProb = 0;
+								}
+								flag = 0;	// Reset flag
+							} -> pcase{
+								failProb: passFail -> Skip
+								successProb: passSuccess{
+								tempPlayer = players[l];
+									ball_position = zone[tempPlayer.getRow()][tempPlayer.getCol()]; player.setBall(0); tempPlayer.setBall(1);
+								} -> Skip
+							}
+							2: shootEvent{
+								if (player.getTeam() == 0) {
+									rowDiff = 23 - player.getRow();
+									colDiff = player.getCol() - 8; if (colDiff < 0) { colDiff = -colDiff; }
+								} else {
+									rowDiff = player.getRow() - 0;
+									colDiff = player.getCol() - 8; if (colDiff < 0) { colDiff = -colDiff; }
+								}
+								failProb = (rowDiff + colDiff) / 50;
+								successProb = 1 - failProb;
+							} -> pcase{
+								failProb: shootFail -> Skip
+								successProb: shootSuccess{
+									if (player.getTeam() == 0) { ball_position = 399; player.setBall(0); } else { ball_position = 8; player.setBall(0); }
+								} -> Skip
+							}
+						}
+					};
+
+// Player will get his ball stolen if he is in the same zone as a player from another team
+Steal() = stealEvent{
+		   	var i; var j;
+			while (i < numOfPlayers-1) {
+				if (players[i].getBall() == 1) {
+					while (j < numOfPlayers-1) {
+						if (players[i].getRow() == players[j].getRow() && players[i].getCol() == players[j].getCol() && players[i].getTeam() != players[j].getTeam()) {
+							players[i].setBall(0);
+							players[j].setBall(1);
+							i = numOfPlayers-1;	// To break the while loop after one steal
+						}
+						j++;
+					}
+				}
+				i++;
+			};
+		} -> Skip;
+
+// Team B will double attempts at shooting
+Play() = Goalkeeper(A1); Attacker(A2); Attacker(A3); Attacker(A4); Midfielder(A5); Midfielder(A6); Midfielder(A7); Defender(A8); Defender(A9); Defender(A10); Defender(A11); 
+		 Goalkeeper(B1); AttackerNew(B2); AttackerNew(B3); AttackerNew(B4); Midfielder(B5); Midfielder(B6); Midfielder(B7); Defender(B8); Defender(B9); Defender(B10); Defender(B11);
+		 Steal(); Play();
+		 
+// Players A2 and B2 will participate in kickoff
+Kickoff() = pcase{
+	1: playerA2Kickoff{ A2.setBall(1); ball_position = zone[A2.getRow()][A2.getCol()]; } -> Skip
+	1: playerB2Kickoff{ B2.setBall(1); ball_position = zone[B2.getRow()][B2.getCol()]; } -> Skip
+};
+
+Game() = Kickoff();	Play();
+				
+#define TeamAWins ball_position == 399;
+#define TeamBWins ball_position == 8;
+#assert Game() deadlockfree;
+#assert Game() reaches TeamAWins with prob;
+#assert Game() reaches TeamBWins with prob;
