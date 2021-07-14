@@ -1,12 +1,12 @@
 # CS3211
 
-Course project for CS3211 - Parallel and Concurrent Programming
+Course project for CS3211 - Parallel and Concurrent Programming AY2020/2021 Sem 2
 
 Two options were given to the students.<br>
 P1: Formal Verification of TLS 1.3 (Key Exchange) Protocol<br>
 P2: Applying Probabilistic Model Checking in Soccer Analytics<br>
 
-This github repo contains the code for option P2.<br>
+This github repo contains my code for option P2.<br>
 Apply Probabilistic Model Checking technique to model a soccer game with multiple parallel processes and reason the relations between player strategy and the team’s winning chance.
 
 Project requirement:<br>
